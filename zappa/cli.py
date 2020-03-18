@@ -1212,7 +1212,7 @@ class ZappaCLI:
                     lambda_name=self.lambda_name,
                     lambda_arn=self.lambda_arn
                 )
-            click.echo('SNS Topic created: %s' % topic_arn)
+                click.echo('SNS Topic created: %s' % topic_arn)
 
         # Add async tasks DynamoDB
         table_name = self.stage_config.get('async_response_table', False)
