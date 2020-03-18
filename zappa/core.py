@@ -2595,6 +2595,7 @@ class Zappa:
         """
         Remove obsolete policy statements to prevent policy from bloating over the limit after repeated updates.
         """
+        logger.debug('Clear policy.')
         try:
             policy_response = self.lambda_client.get_policy(
                 FunctionName=lambda_name
@@ -2663,7 +2664,7 @@ class Zappa:
         #     lambda_arn = lambda_arn + ":$LATEST"
 
         self.unschedule_events(lambda_name=lambda_name, lambda_arn=lambda_arn, events=events,
-                               excluded_source_services=pull_services)
+                               excluded_source_services=pull_services, clear_policy=False)
         for event in events:
             function = event['function']
             expression = event.get('expression', None) # single expression
@@ -2866,7 +2867,8 @@ class Zappa:
         rule_names = self.get_event_rule_names_for_lambda(lambda_arn=lambda_arn)
         return [self.events_client.describe_rule(Name=r) for r in rule_names]
 
-    def unschedule_events(self, events, lambda_arn=None, lambda_name=None, excluded_source_services=None):
+    def unschedule_events(self, events, lambda_arn=None, lambda_name=None, excluded_source_services=None,
+                          clear_policy=True):
         excluded_source_services = excluded_source_services or []
         """
         Given a list of events, unschedule these CloudWatch Events.
@@ -2874,7 +2876,8 @@ class Zappa:
         'events' is a list of dictionaries, where the dict must contains the string
         of a 'function' and the string of the event 'expression', and an optional 'name' and 'description'.
         """
-        self._clear_policy(lambda_name)
+        if clear_policy:
+            self._clear_policy(lambda_name)
 
         rule_names = self.get_event_rule_names_for_lambda(lambda_arn=lambda_arn)
         for rule_name in rule_names:
