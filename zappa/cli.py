@@ -1028,7 +1028,7 @@ class ZappaCLI:
         else:
             endpoint_url = None
 
-        self.schedule()
+        self.schedule(update_policy=False)
 
         # Update any cognito pool with the lambda arn
         # do this after schedule as schedule clears the lambda policy and we need to add one
@@ -1159,7 +1159,7 @@ class ZappaCLI:
                 lambda_configs.add(trigger['source'].split('_')[0])
             self.zappa.update_cognito(self.lambda_name, user_pool, lambda_configs, self.lambda_arn)
 
-    def schedule(self):
+    def schedule(self, update_policy=True):
         """
         Given a a list of functions and a schedule to execute them,
         setup up regular execution.
@@ -1198,7 +1198,8 @@ class ZappaCLI:
             self.zappa.schedule_events(
                 lambda_arn=function_response['Configuration']['FunctionArn'],
                 lambda_name=self.lambda_name,
-                events=events
+                events=events,
+                update_policy=update_policy
             )
 
         # Add async tasks SNS
@@ -1206,10 +1207,11 @@ class ZappaCLI:
            and self.stage_config.get('async_resources', True):
             self.lambda_arn = self.zappa.get_lambda_function(
                 function_name=self.lambda_name)
-            topic_arn = self.zappa.create_async_sns_topic(
-                lambda_name=self.lambda_name,
-                lambda_arn=self.lambda_arn
-            )
+            if update_policy:
+                topic_arn = self.zappa.create_async_sns_topic(
+                    lambda_name=self.lambda_name,
+                    lambda_arn=self.lambda_arn
+                )
             click.echo('SNS Topic created: %s' % topic_arn)
 
         # Add async tasks DynamoDB

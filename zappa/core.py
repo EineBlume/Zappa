@@ -2642,7 +2642,7 @@ class Zappa:
 
         return permission_response
 
-    def schedule_events(self, lambda_arn, lambda_name, events, default=True):
+    def schedule_events(self, lambda_arn, lambda_name, events, update_policy=True, default=True):
         """
         Given a Lambda ARN, name and a list of events, schedule this as CloudWatch Events.
 
@@ -2664,7 +2664,7 @@ class Zappa:
         #     lambda_arn = lambda_arn + ":$LATEST"
 
         self.unschedule_events(lambda_name=lambda_name, lambda_arn=lambda_arn, events=events,
-                               excluded_source_services=pull_services, clear_policy=False)
+                               excluded_source_services=pull_services, clear_policy=update_policy)
         for event in events:
             function = event['function']
             expression = event.get('expression', None) # single expression
@@ -2705,7 +2705,8 @@ class Zappa:
                         logger.debug('Rule created. ARN {}'.format(rule_response['RuleArn']))
 
                     # Specific permissions are necessary for any trigger to work.
-                    self.create_event_permission(lambda_name, 'events.amazonaws.com', rule_response['RuleArn'])
+                    if update_policy:
+                        self.create_event_permission(lambda_name, 'events.amazonaws.com', rule_response['RuleArn'])
 
                     # Overwriting the input, supply the original values and add kwargs
                     input_template = '{"time": <time>, ' \
@@ -2756,11 +2757,12 @@ class Zappa:
 
                 if service not in pull_services:
                     svc = ','.join(event['event_source']['events'])
-                    self.create_event_permission(
-                        lambda_name,
-                        service + '.amazonaws.com',
-                        event['event_source']['arn']
-                    )
+                    if update_policy:
+                        self.create_event_permission(
+                            lambda_name,
+                            service + '.amazonaws.com',
+                            event['event_source']['arn']
+                        )
                 else:
                     svc = service
 
@@ -2912,7 +2914,7 @@ class Zappa:
     # Async / SNS
     ##
 
-    def create_async_sns_topic(self, lambda_name, lambda_arn):
+    def create_async_sns_topic(self, lambda_name, lambda_arn, update_policy=True):
         """
         Create the SNS-based async topic.
         """
